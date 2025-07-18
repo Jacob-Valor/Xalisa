@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  nodered:
+    image: nodered/node-red:latest
+    container_name: nodered
+    restart: unless-stopped
+    ports:
+      - "1880:1880"
+    volumes:
+      - nodered_data:/data
+      - ./flows:/data/flows
+    environment:
+      - TZ=UTC
+    depends_on:
+      - hivemq
+    networks:
+      - iot_network
+
+  hivemq:
+    image: hivemq/hivemq4:latest
+    container_name: hivemq
+    restart: unless-stopped
+    ports:
+      - "1883:1883"     # MQTT
+      - "8080:8080"     # Control Center
+      - "8000:8000"     # Websockets
+    volumes:
+      - hivemq_data:/opt/hivemq/data
+      - hivemq_log:/opt/hivemq/log
+      - ./hivemq-config:/opt/hivemq/conf
+    environment:
+      - HIVEMQ_BIND_ADDRESS=0.0.0.0
+    networks:
+      - iot_network
+
+  influxdb:
+    image: influxdb:2.0
+    container_name: influxdb
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+    environment:
+      - INFLUXDB_DB=iot_data
+      - INFLUXDB_ADMIN_USER=admin
+      - INFLUXDB_ADMIN_PASSWORD=password123
+    networks:
+      - iot_network
+
+volumes:
+  nodered_data:
+  hivemq_data:
+  hivemq_log:
+  influxdb_data:
+
+networks:
+  iot_network:
+    driver: bridge
